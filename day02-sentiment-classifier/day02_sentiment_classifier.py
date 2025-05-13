@@ -6,7 +6,6 @@ from pydantic import Field
 import litellm
 import os
 from dotenv import load_dotenv
-from typing import List
 
 # Load environment variables
 load_dotenv()
