@@ -1,19 +1,18 @@
-# Day 04: PDF Reader Q&A with LiteLLM, FAISS, and LangChain
+# Day 05: Embeddings Generator
 
-Building on earlier projects, this challenge adds a **PDF question-answering agent**. It lets users ask questions about a PDF document and get answers using semantic search and a language model (DeepSeek-R1) via LiteLLM.
+This day focuses on creating a FAISS vector store from a PDF document. The script splits a PDF into chunks, generates embeddings using a HuggingFace model and saves them for later retrieval.
 
 ## What I Learned
 
 - How to extract text from PDFs using LangChain’s `PyPDFLoader`
 - How to chunk and embed text using `sentence-transformers` for semantic search
 - How to use `FAISS` to retrieve relevant text chunks from a vector store
-- How to send user questions and document context to DeepSeek using a custom LangChain-compatible model
-- How to chain document indexing + search + answer generation
+- How to generate embeddings for document chunks
+- How to store embeddings for fast retrieval later
 
 ## Code Structure
 
-- `day04_pdf_reader_q&a.py`: Main script for loading PDF, creating vector store, and answering user queries
-- `LiteLLMChatModel`: Custom class that wraps DeepSeek via `litellm` for LangChain compatibility
+- `day05-embeddings-generator.py`: Reads the PDF and builds the FAISS index
 - `.env`: Contains your Hugging Face API key
 
 ## How to Run
@@ -38,24 +37,16 @@ Building on earlier projects, this challenge adds a **PDF question-answering age
 
 4. **Run the program**:
    ```bash
-   python day04_pdf_reader_q&a.py
-   ```
-
-5. **Ask questions interactively!**
-   Example:
-   ```
-   You: What is the main topic of the document?
+   python day05-embeddings-generator.py
    ```
 
 ## Technical Details
 
-This Q&A agent:
+This script:
 
-- **Uses `PyPDFLoader`** to load and split PDF into chunks
-- **Uses `sentence-transformers/all-MiniLM-L6-v2`** to embed both text and user queries
-- **Stores chunks in a FAISS vector store** for efficient semantic search
-- **Selects top-matching chunks** and feeds them into a prompt to DeepSeek
-- **DeepSeek LLM (via LiteLLM)** generates an answer based on context
+- **Uses `PyPDFLoader`** to load and split the PDF into manageable chunks
+- **Generates embeddings with `sentence-transformers/all-MiniLM-L6-v2`**
+- **Stores the embeddings in a FAISS vector store** for later retrieval
 
 > Note: `HuggingFaceEmbeddings` should now be imported from `langchain_huggingface` due to deprecation in LangChain 0.2.2.
 
