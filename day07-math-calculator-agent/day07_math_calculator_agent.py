@@ -1,5 +1,5 @@
 import os
-from langchain.agents import initialize_agent, Tool, AgentType
+from langchain.agents import initialize_agent, AgentType
 from langchain_experimental.utilities.python import PythonREPL
 from langchain_community.tools import Tool
 from langchain.llms import OpenAI
