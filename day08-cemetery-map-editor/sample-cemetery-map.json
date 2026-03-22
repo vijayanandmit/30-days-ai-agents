@@ -1,0 +1,22 @@
+[
+  {
+    "id": "sectionA",
+    "name": "Section A",
+    "style": "grid-column: 1 / 6; grid-row: 1 / 4;",
+    "class": "section",
+    "sn": "A"
+  },
+  {
+    "id": "sectionB",
+    "name": "Section B",
+    "style": "grid-column: 6 / 11; grid-row: 1 / 4;",
+    "class": "section",
+    "sn": "B"
+  },
+  {
+    "id": "cemeteryRoad",
+    "name": "Cemetery Road",
+    "style": "grid-column: 11 / 12; grid-row: 1 / 48;",
+    "class": "section cemetery-road"
+  }
+]

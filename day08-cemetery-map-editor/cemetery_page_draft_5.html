@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cemetery Map Editor</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', 'Segoe UI', Tahoma, sans-serif;
+            margin: 0;
+            padding: 0px 20px; /* top & bottom = 1px, left & right = 20px */
+            background: #f0f0f0;
+            overflow: hidden;
+        }
+
+
+        h1 {
+            height: 3vh;
+            line-height: 3vh;
+            margin: 0;
+            padding: 0;
+            font-size: 0.8rem;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .main-layout {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            padding: 0;
+        }
+
+        .grid-wrapper {
+            flex-shrink: 0;
+        }
+
+        .column-labels {
+            margin-left: 40px;
+        }
+
+        .col-labels {
+            display: grid;
+            grid-template-columns: repeat(16, 3vw);
+            font-size: 10px;
+            text-align: center;
+            color: darkolivegreen;
+        }
+
+        .row-and-grid {
+            display: flex;
+            align-items: stretch;
+        }
+
+        .row-labels {
+            display: grid;
+            grid-template-rows: repeat(47, 2vh); /* or your current row count */
+            font-size: 10px; /* slightly smaller than before */
+            text-align: right;
+            padding-right: 5px;
+            width: 35px;
+            row-gap: 0px;
+            column-gap: 1px;
+            color: darkolivegreen; /* light blue text */
+        }
+
+        .section:empty::after {
+            content: "(unnamed)";
+            color: #999;
+            font-style: italic;
+            font-size: 12px;
+        }
+
+        /* Base layout for larger screens */
+        .cemetery-grid {
+            margin-top: 0;
+            padding_top: 0;
+            display: grid;
+            grid-template-columns: repeat(16, 3vw);
+            grid-template-rows: repeat(47, 2vh);
+            row-gap: 0px;
+            column-gap: 1px;
+            background-color: #ccc;
+            border: 3px solid green;
+            flex-shrink: 0;
+        }
+
+        .section {
+            position: relative; /* Enables absolute positioning inside */
+            background-color: #fcf9f3; /* ultra-pale earthy tone */
+            border: 0.8px solid #666; /* thinner and slightly grey */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: normal; /* Removes bold */
+            cursor: pointer;
+        }
+
+            .section.selected {
+                background-color: #e0ffe0;
+                border-color: #007700;
+            }
+
+        .section-name:hover {
+            color: #005bb5; /* Slightly darker blue than #007aff */
+            font-weight: 600; /* Slightly bold, but not full bold */
+            transition: color 0.2s ease, font-weight 0.2s ease;
+        }
+
+        .sn-label {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            margin: 0;
+            padding: 0;
+            font-size: 0.75em;
+            border-radius: 3px;
+            color: #003366; /* Dark blue */
+            line-height: 1; /* Reduces vertical spacing */
+            height: 1em; /* Optional: forces tight height */
+        }
+
+        #editor {
+            background: #fff;
+            border: 1px solid #333;
+            padding: 10px;
+            width: 200px;
+            min-width: 200px;
+            max-height: 85vh; /* Limits height to 75% of viewport */
+            flex-shrink: 0;
+        }
+
+            #editor h3 {
+                margin-top: 0;
+            }
+
+            #editor textarea {
+                font-family: 'Roboto', 'Segoe UI', Tahoma, sans-serif;
+            }
+
+        #editor,
+        #sectionListBox {
+            max-height: 85vh; /* or whatever height you're using */
+            overflow-y: auto;
+        }
+
+        #mapUrlInput {
+            width: 100%;
+            margin: 6px 0 10px 0;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: 'Roboto', 'Segoe UI', Tahoma, sans-serif;
+            font-size: 13px;
+        }
+
+        .url-input-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 12px;
+            color: #2f4f4f;
+        }
+
+        #sectionName {
+            /* Only affects the Section Name textarea */
+            font-family: "Segoe UI", Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.4;
+            padding: 6px;
+            resize: none;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        #editor label {
+            display: flex;
+            flex-direction: column;
+            font-size: 13px;
+            color: #555; /* softer than black */
+            font-weight: normal; /* removes boldness if present */
+        }
+
+        input {
+            width: 100%;
+            padding: 5px;
+            font-size: 14px;
+        }
+
+        button {
+            min-width: 85px;
+            min-height: 30px;
+            margin-top: 10px;
+            padding: 4px 20px; /* Smaller spacing */
+            font-size: 0.70rem; /* Smaller text */
+            cursor: pointer;
+            background-color: #f9f1dc; /* pale reddish-gold */
+            color: #007aff; /* iOS blue */
+            border: 1px solid #ccc; /* Soft border */
+            border-radius: 14px; /* Slightly tighter corners */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            transition: background-color 0.2s ease;
+        }
+
+            button:hover {
+                background-color: #e6e6e6; /* Slightly darker on hover */
+                font-weight: bold;
+            }
+
+        .icon-button {
+            background: none;
+            border: none;
+            font-size: 14px;
+            padding: 0;
+            margin-left: 4px;
+            cursor: pointer;
+            line-height: 1;
+            width: auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (max-width: 1000px) {
+            .container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+
+            #editor {
+                width: 90vw;
+                max-width 250px;
+                margin-top: 20px;
+            }
+        }
+
+        #sectionListBox {
+            max-height: 85vh;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+        }
+
+        .section-list-header {
+            position: sticky;
+            top: 0;
+            background-color: #fff;
+            z-index: 1;
+            padding: 8px;
+            display: flex;
+            justify-content: left;
+            align-items: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+            .section-list-header h3 {
+                margin: 0;
+                font-size: 18px;
+            }
+        .section-list-button {
+            all: unset; /* resets inherited styles */
+            font-size: 12px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: left;
+            gap: 0;
+            padding: 0;
+
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            white-space: nowrap;
+        }
+
+        .icon-button {
+            background: none;
+            border: none;
+            padding: 0;
+            margin: 0 0 0 6px;
+            font-size: 12px;
+            line-height: 1;
+            cursor: pointer;
+            display: inline-block;
+            width: 1em;
+            height: 1em;
+            overflow: hidden;
+        }
+
+        #sectionList {
+            max-height: 80%; /* controls scroll height */
+            overflow-y: auto;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+            #sectionList li {
+                display: flex;
+                align-items: flex-start;
+                padding: 2px 2px;
+                border-bottom: 1px solid #ddd;
+            }
+
+                #sectionList li.selected {
+                    background-color: #ffeeba;
+                    font-weight: bold;
+                }
+
+        .section-number {
+            flex-shrink: 0;
+            width: 36px;
+            font-size: 10px; /* slightly smaller, still readable */
+            color: #666;
+            margin-right: 8px;
+            text-align: right;
+            white-space: nowrap; /* prevents wrapping */
+        }
+
+
+        .section-name-text {
+            flex-grow: 1;
+            font-size: 12px;
+            line-height: 1.4;
+            text-indent: -36px; /* pulls first line back */
+            padding-left: 36px; /* pushes all lines forward */
+        }
+
+        .cemetery-road {
+            writing-mode: vertical-rl;
+            text-align: center;
+            font-weight: bold;
+            background-color: #8b6f47; /* muted brown */
+            color: #f5f5dc; /* light beige text */
+            border-left: 1px solid #5c4422;
+            border-right: 1px solid #5c4422;
+            padding: 4px;
+        }
+    </style>
+    <style>
+        .sn-label {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            font-size: 0.8vw;
+            background-color: rgba(255, 255, 255, 0.75);
+            padding: 0.2vw 0.5vw;
+            border-radius: 0.3vw;
+            color: darkslategray;
+            pointer-events: none;
+        }
+    </style>
+    <style>
+        .compass-rose {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 8vmin;
+            height: 8vmin;
+            border: 2px solid darkolivegreen;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Georgia', serif;
+            color: darkolivegreen;
+            background-color: #f9f9f9;
+        }
+
+        .direction {
+            position: absolute;
+            font-size: 2vh;
+        }
+
+        .south {
+            top: 1px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2vw;
+            font-weight: bold;
+            color: #8B0000; /* Deep red */
+        }
+
+        .north {
+            bottom: 1px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.6vw; /* Smaller than S */
+        }
+
+        .east {
+            top: 50%;
+            right: 1px;
+            transform: translateY(-50%);
+            font-size: 1.6vw; /* Smaller than S */
+        }
+
+        .west {
+            top: 50%;
+            left: 1px;
+            transform: translateY(-50%);
+            font-size: 1.6vw; /* Smaller than S */
+        }
+
+        .arrow-up {
+            position: absolute;
+            top: 2vh;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8vw;
+            height: 8vh;
+        }
+
+        .arrow-icon {
+            width: 100%;
+            height: 100%;
+        }
+
+        #inquire-scroll-box {
+            position: absolute;
+            height: 70vh;
+            top: 60px;
+            right: 20px;
+            width: 250px;
+            height: 70vh;
+            background: white;
+            border: solid;
+            padding: 10px;
+            overflow: hidden;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #inquire-scroll-area {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding-right: 5px;
+        }
+
+        #inquire-scroll-box h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .inquire-item {
+            padding: 5px;
+            cursor: pointer;
+        }
+
+            .inquire-item:hover {
+                background-color: #f0f0f0;
+            }
+    </style>
+
+</head>
+<body>
+    <h1>Cemetery Map Editor</h1>
+    <div class="main-layout">
+        <div class="grid-wrapper">
+            <div class="row-and-grid">
+                <div class="row-labels" id="rowLabels"></div>
+                <div class="cemetery-grid" id="cemeteryGrid">
+                    <div class="section" id="sectionA" style="grid-column: 1 / 6; grid-row: 1 / 4;">Section A</div>
+                    <div class="section" id="sectionB" style="grid-column: 6 / 11; grid-row: 1 / 4;">Section B</div>
+                    <div class="section cemetery-road" style="grid-column: 11 / 12; grid-row: 1 / 48;">
+
+                        Cemetery Road
+                    </div>
+
+                </div>
+            </div>
+            <div class="column-labels">
+                <div class="col-labels" id="colLabels"></div>
+            </div>
+        </div>
+
+        <div id="sectionListBox">
+            <div class="section-list-header">
+                <button class="section-list-button" onclick="loadCemeteryMapFromWeb()" title="Load Cemetery Map">🌐</button>
+                <h3>Section List</h3>
+            </div>
+            <ul id="sectionList"></ul>
+        </div>
+
+        <div id="editor">
+            <h3>Edit Section</h3>
+            <label>
+                Section Name:
+                <textarea id="sectionName" rows="2" style="resize: none;"></textarea>
+            </label>
+            <label>Grid Column Start: <input type="number" id="colStart" min="1" max="16"></label>
+            <label>Grid Column End: <input type="number" id="colEnd" min="1" max="21"></label>
+            <label>Grid Row Start: <input type="number" id="rowStart" min="1" max="47"></label>
+            <label>Grid Row End: <input type="number" id="rowEnd" min="1" max="47"></label>
+            <button onclick="createNewSection()">Add</button>
+            <button onclick="applyChanges()">Modify</button>
+            <button onclick="deleteSection()">Delete</button>
+            <button onclick="downloadJsonFile()">Save Cemetery Map</button>
+            <label class="url-input-label" for="mapUrlInput">Map JSON URL</label>
+            <input type="url" id="mapUrlInput" placeholder="https://example.com/cemetery-map.json">
+            <button onclick="loadCemeteryMapFromWeb()">🌐 Load Cemetery Map</button>
+        </div>
+
+        <div class="compass-rose">
+            <div class="arrow-up">
+                <svg viewBox="0 0 100 100" class="arrow-icon">
+                    <!-- Stem: from bottom to mid -->
+                    <line x1="50" y1="90" x2="50" y2="40" stroke="darkolivegreen" stroke-width="6" />
+                    <!-- Arrowhead: below the S -->
+                    <polygon points="40,40 60,40 50,25" fill="darkolivegreen" />
+                </svg>
+            </div>
+            <div class="direction south">S</div>
+            <div class="direction east">E</div>
+            <div class="direction west">W</div>
+        </div>
+
+        <script>
+            // Generate column labels
+            const colLabels = document.getElementById('colLabels');
+            for (let i = 1; i <= 16; i++) {
+                const label = document.createElement('div');
+                label.textContent = i;
+                colLabels.appendChild(label);
+            }
+
+            // Generate row labels
+            const rowLabels = document.getElementById('rowLabels');
+            rowLabels.innerHTML = '';
+
+            for (let i = 1; i <= 47; i++) {
+                const label = document.createElement('div');
+                label.textContent = i % 2 === 1 ? i : ''; // Only show odd numbers
+                rowLabels.appendChild(label);
+            }
+
+            let selectedSection = null;
+            let hasUnsavedChanges = false;
+            const sectionListElement = document.getElementById('sectionList');
+            const mapUrlInput = document.getElementById('mapUrlInput');
+            const DEFAULT_MAP_URL = 'sample-cemetery-map.json';
+
+            if (mapUrlInput) {
+                mapUrlInput.value = DEFAULT_MAP_URL;
+
+                if (window.location.protocol.startsWith('http')) {
+                    loadCemeteryMapFromWeb();
+                }
+            }
+
+            function attachClickHandler(section) {
+                section.addEventListener('click', () => {
+                    // Clear previous highlights
+                    document.querySelectorAll('.section').forEach(s => s.classList.remove('selected', 'highlight'));
+                    document.querySelectorAll('#sectionList li').forEach(li => li.classList.remove('selected'));
+
+                    // Highlight the clicked section
+                    section.classList.add('selected', 'highlight');
+                    selectedSection = section;
+
+                    // Populate Edit Section box
+                    document.getElementById('sectionName').value = section.dataset.name || section.textContent.trim();
+                    document.getElementById('colStart').value = section.dataset.colStart || '';
+                    document.getElementById('colEnd').value = section.dataset.colEnd || '';
+                    document.getElementById('rowStart').value = section.dataset.rowStart || '';
+                    document.getElementById('rowEnd').value = section.dataset.rowEnd || '';
+
+                    // Highlight the matching list item
+                    const listItems = document.querySelectorAll('#sectionList li');
+                    listItems.forEach(li => {
+                        if (li.dataset.id === section.id) {
+                            li.classList.add('selected');
+                            li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    });
+                });
+            }
+
+
+
+            // Attach to existing sections
+            document.querySelectorAll('.section').forEach(section => {
+                // Add dataset values based on initial style
+                const style = window.getComputedStyle(section);
+                section.dataset.name = section.textContent.trim();
+                const [colStart, colEnd] = style.gridColumn.split('/').map(s => s.trim());
+                const [rowStart, rowEnd] = style.gridRow.split('/').map(s => s.trim());
+
+                section.dataset.colStart = colStart;
+                section.dataset.colEnd = colEnd;
+                section.dataset.rowStart = rowStart;
+                section.dataset.rowEnd = rowEnd;
+
+                attachClickHandler(section);
+            });
+
+            function applyChanges() {
+                if (!selectedSection) {
+                    alert("No section selected.");
+                    return;
+                }
+
+                const name = document.getElementById('sectionName').value.trim();
+                const colStart = parseInt(document.getElementById('colStart').value);
+                const colEnd = parseInt(document.getElementById('colEnd').value);
+                const rowStart = parseInt(document.getElementById('rowStart').value);
+                const rowEnd = parseInt(document.getElementById('rowEnd').value);
+
+                const maxCols = 21;
+                const maxRows = 49;
+
+                if (
+                    isNaN(colStart) || isNaN(colEnd) || isNaN(rowStart) || isNaN(rowEnd) ||
+                    colStart < 1 || colEnd > maxCols || colStart >= colEnd ||
+                    rowStart < 1 || rowEnd > maxRows || rowStart >= rowEnd
+                ) {
+                    alert("Invalid grid position. Please stay within 1–for columns and 1–49 for rows.");
+                    return;
+                }
+
+                const nameLabel = selectedSection.querySelector('.section-name');
+
+                if (nameLabel) {
+                    nameLabel.textContent = name;
+                } else {
+                    const newNameDiv = document.createElement('div');
+                    newNameDiv.className = 'section-name';
+                    newNameDiv.textContent = name;
+                    selectedSection.appendChild(newNameDiv);
+                }
+                selectedSection.style.gridColumn = `${colStart} / ${colEnd}`;
+                selectedSection.style.gridRow = `${rowStart} / ${rowEnd}`;
+                selectedSection.dataset.name = name;
+                selectedSection.dataset.colStart = colStart;
+                selectedSection.dataset.colEnd = colEnd;
+                selectedSection.dataset.rowStart = rowStart;
+                selectedSection.dataset.rowEnd = rowEnd;
+
+                // Update scroll list entry
+                const listItem = document.querySelector(`#sectionList li[data-id="${selectedSection.id}"]`);
+                if (listItem) {
+                    const nameSpan = listItem.querySelector(".section-name-text");
+                    if (nameSpan) {
+                        nameSpan.textContent = name;
+                    }
+                }
+
+                // Mark as unsaved
+                hasUnsavedChanges = true;
+                return;
+            }
+
+            function findFirstAdaptiveBlock(maxWidth, maxHeight) {
+                const occupied = new Set();
+
+                document.querySelectorAll('.section').forEach(section => {
+                    const [startCol, endCol] = section.style.gridColumn.split('/').map(Number);
+                    const [startRow, endRow] = section.style.gridRow.split('/').map(Number);
+
+                    for (let r = startRow; r < endRow; r++) {
+                        for (let c = startCol; c < endCol; c++) {
+                            occupied.add(`${r},${c}`);
+                        }
+                    }
+                });
+
+                // Try all sizes from maxWidth × maxHeight down to 1×1
+                for (let c = 1; c <= 16; c++) { // column-first
+                    for (let r = 1; r <= 47; r++) { // top to bottom
+                        for (let h = maxHeight; h >= 1; h--) { // try tall blocks first
+                            for (let w = maxWidth; w >= 1; w--) { // try wide blocks last
+                                if (r + h - 1 > 47 || c + w - 1 > 16) continue; // skip if out of bounds
+                                let fits = true;
+                                for (let dr = 0; dr < h; dr++) {
+                                    for (let dc = 0; dc < w; dc++) {
+                                        if (occupied.has(`${r + dr},${c + dc}`)) {
+                                            fits = false;
+                                            break;
+                                        }
+                                    }
+                                    if (!fits) break;
+                                }
+
+                                if (fits) {
+                                    return {
+                                        rowStart: r,
+                                        rowEnd: r + h,
+                                        colStart: c,
+                                        colEnd: c + w
+                                    };
+                                }
+                            }
+                        }
+                    }
+                }
+
+
+                return null;
+            }
+
+            function createNewSection() {
+                let name = document.getElementById('sectionName').value.trim();
+                // Leave blank if not provided
+
+                let colStart = parseInt(document.getElementById('colStart').value);
+                let colEnd = parseInt(document.getElementById('colEnd').value);
+                let rowStart = parseInt(document.getElementById('rowStart').value);
+                let rowEnd = parseInt(document.getElementById('rowEnd').value);
+
+                if (
+                    isNaN(colStart) || isNaN(colEnd) ||
+                    isNaN(rowStart) || isNaN(rowEnd)
+                ) {
+                    const open = findFirstAdaptiveBlock(5, 2);
+                    if (!open) {
+                        alert("No available space to place a new section.");
+                        return;
+                    }
+                    colStart = open.colStart;
+                    colEnd = open.colEnd;
+                    rowStart = open.rowStart;
+                    rowEnd = open.rowEnd;
+                    console.log("Placed section at:", { colStart, colEnd, rowStart, rowEnd });
+                }
+
+                const maxCols = 21;
+                const maxRows = 49;
+
+                console.log("Trying to place section at:", {
+                    colStart, colEnd, rowStart, rowEnd
+                });
+
+
+                if (
+                    isNaN(colStart) || isNaN(colEnd) || isNaN(rowStart) || isNaN(rowEnd) ||
+                    colStart < 1 || colEnd > maxCols || colStart >= colEnd ||
+                    rowStart < 1 || rowEnd > maxRows || rowStart >= rowEnd
+                ) {
+                    alert("Invalid grid position. Please stay within 1–16 for columns and 1–49 for rows.");
+                    return;
+                }
+
+                const newSection = document.createElement('div');
+                newSection.className = 'section';
+                newSection.textContent = name;
+                newSection.style.gridColumn = `${colStart} / ${colEnd}`;
+                newSection.style.gridRow = `${rowStart} / ${rowEnd}`;
+                newSection.dataset.name = name;
+                newSection.dataset.colStart = colStart;
+                newSection.dataset.colEnd = colEnd;
+                newSection.dataset.rowStart = rowStart;
+                newSection.dataset.rowEnd = rowEnd;
+
+                attachClickHandler(newSection);
+                document.querySelector('.cemetery-grid').appendChild(newSection);
+
+                selectedSection = null;
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('selected'));
+                document.getElementById('sectionName').value = '';
+                document.getElementById('colStart').value = '';
+                document.getElementById('colEnd').value = '';
+                document.getElementById('rowStart').value = '';
+                document.getElementById('rowEnd').value = '';
+                hasUnsavedChanges = true;
+            }
+            function getEditedSectionsData() {
+                const elements = document.querySelectorAll('.section, .road');
+                const data = [];
+
+                elements.forEach(el => {
+                    const snText = el.querySelector('.sn-label')?.textContent.trim() || '';
+                    const nameText = el.querySelector('.section-name')?.textContent.trim() || el.textContent.trim();
+
+                    data.push({
+                        id: el.id || null,
+                        name: nameText,
+                        style: el.getAttribute('style') || '',
+                        class: el.className,
+                        sn: snText
+                    });
+                });
+
+                return JSON.stringify(data, null, 2);
+            }
+
+            function downloadJsonFile() {
+                const jsonData = getEditedSectionsData();
+                const blob = new Blob([jsonData], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'cemetery-map.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+            }
+
+            function populateCemeteryGrid(data) {
+                if (!Array.isArray(data)) {
+                    throw new Error("JSON root is not an array");
+                }
+
+                const grid = document.querySelector('.cemetery-grid');
+                grid.innerHTML = '';
+                sectionListElement.innerHTML = '';
+
+                const sortedForList = [...data].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+                data.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = item.class || 'section';
+                    div.id = item.id || '';
+                    div.setAttribute('style', item.style || '');
+
+                    const nameLabel = document.createElement('div');
+                    nameLabel.className = 'section-name';
+                    nameLabel.textContent = item.name || '';
+                    div.appendChild(nameLabel);
+
+                    if (item.sn) {
+                        const snLabel = document.createElement('div');
+                        snLabel.className = 'sn-label';
+                        snLabel.textContent = item.sn;
+                        div.appendChild(snLabel);
+                    }
+
+                    const [colStart, colEnd] = div.style.gridColumn.split('/').map(s => s.trim());
+                    const [rowStart, rowEnd] = div.style.gridRow.split('/').map(s => s.trim());
+
+                    div.dataset.name = item.name || '';
+                    div.dataset.colStart = colStart || '';
+                    div.dataset.colEnd = colEnd || '';
+                    div.dataset.rowStart = rowStart || '';
+                    div.dataset.rowEnd = rowEnd || '';
+
+                    attachClickHandler(div);
+                    grid.appendChild(div);
+                });
+
+                sortedForList.forEach(item => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span class="section-number">${item.sn || ''}</span>
+                                        <span class="section-name-text">${item.name || ''}</span>`;
+                    li.dataset.id = item.id || '';
+                    li.addEventListener('click', () => {
+                        document.querySelectorAll('.section').forEach(s => s.classList.remove('selected', 'highlight'));
+                        document.querySelectorAll('#sectionList li').forEach(li => li.classList.remove('selected'));
+
+                        li.classList.add('selected');
+
+                        const target = document.getElementById(item.id);
+                        if (target) {
+                            target.classList.add('selected', 'highlight');
+                            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                            document.getElementById('sectionName').value = target.dataset.name || '';
+                            document.getElementById('colStart').value = target.dataset.colStart || '';
+                            document.getElementById('colEnd').value = target.dataset.colEnd || '';
+                            document.getElementById('rowStart').value = target.dataset.rowStart || '';
+                            document.getElementById('rowEnd').value = target.dataset.rowEnd || '';
+
+                            selectedSection = target;
+                        }
+                    });
+
+                    sectionListElement.appendChild(li);
+                });
+
+                document.querySelectorAll('.section').forEach(div => {
+                    const height = div.offsetHeight;
+                    const width = div.offsetWidth;
+
+                    const isCemeteryRoad = div.textContent.trim() === 'Cemetery Road';
+
+                    let fontSize;
+
+                    if (isCemeteryRoad) {
+                        fontSize = Math.min(Math.max(12, width * 0.5), 20);
+                    } else {
+                        fontSize = Math.min(Math.max(12, height * 0.16), 28);
+                    }
+
+                    div.style.fontSize = `${fontSize}px`;
+                });
+
+                selectedSection = null;
+                hasUnsavedChanges = false;
+            }
+
+            async function loadCemeteryMapFromWeb() {
+                if (hasUnsavedChanges) {
+                    const proceed = confirm("You have unsaved changes. Loading a new map will overwrite them. Continue?");
+                    if (!proceed) {
+                        return;
+                    }
+                }
+
+                const url = (mapUrlInput?.value || '').trim();
+                if (!url) {
+                    alert('Please provide a valid URL to a cemetery map JSON file.');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(url, { cache: 'no-store' });
+                    if (!response.ok) {
+                        throw new Error(`Request failed with status ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    populateCemeteryGrid(data);
+                } catch (error) {
+                    console.error('❌ Failed to load map:', error);
+                    alert('Error loading map from URL: ' + error.message);
+                }
+            }
+
+            function deleteSection() {
+                if (!selectedSection) {
+                    alert("No section selected to delete.");
+                    return;
+                }
+
+                // Remove from DOM
+                selectedSection.remove();
+
+                // Clear selection and editor
+                selectedSection = null;
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('selected'));
+                document.getElementById('sectionName').value = '';
+                document.getElementById('colStart').value = '';
+                document.getElementById('colEnd').value = '';
+                document.getElementById('rowStart').value = '';
+                document.getElementById('rowEnd').value = '';
+                hasUnsavedChanges = true;
+            }
+
+
+            document.querySelectorAll('.section').forEach(section => {
+                const style = window.getComputedStyle(section);
+
+                // Extract grid values from computed style
+                section.dataset.name = section.textContent.trim();
+                section.dataset.colStart = style.gridColumnStart;
+                section.dataset.colEnd = style.gridColumnEnd;
+                section.dataset.rowStart = style.gridRowStart;
+                section.dataset.rowEnd = style.gridRowEnd;
+
+                // Attach click behavior
+                attachClickHandler(section);
+            });
+
+        </script>
+        <script>
+            window.addEventListener("beforeunload", function (e) {
+                if (hasUnsavedChanges) {
+                    const confirmationMessage = "You have unsaved changes. Do you want to leave without saving?";
+                    e.preventDefault();
+                    e.returnValue = confirmationMessage;
+                    return confirmationMessage;
+                }
+            });
+        </script>
+
+</body>
+</html>
