@@ -10,15 +10,48 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-token = os.getenv("HF_API_TOKEN")
-if not token:
-    print("HF_API_TOKEN not found in environment!")
-    exit()
 
-os.environ["HF_TOKEN"] = token
+def resolve_provider_config() -> dict:
+    """Resolve LiteLLM config for either Hugging Face (default) or Moltbook."""
+    provider = os.getenv("LLM_PROVIDER", "huggingface").strip().lower()
+
+    if provider == "moltbook":
+        api_key = os.getenv("MOLTBOOK_API_KEY")
+        api_base = os.getenv("MOLTBOOK_API_BASE")
+        model = os.getenv("MOLTBOOK_MODEL", "openai/gpt-4o-mini")
+
+        if not api_key:
+            raise ValueError("MOLTBOOK_API_KEY not found in environment!")
+        if not api_base:
+            raise ValueError("MOLTBOOK_API_BASE not found in environment!")
+
+        return {
+            "provider": "moltbook",
+            "model": model,
+            "completion_kwargs": {
+                "api_key": api_key,
+                "api_base": api_base,
+            },
+        }
+
+    token = os.getenv("HF_API_TOKEN")
+    if not token:
+        raise ValueError("HF_API_TOKEN not found in environment!")
+
+    os.environ["HF_TOKEN"] = token
+
+    return {
+        "provider": "huggingface",
+        "model": os.getenv("HF_MODEL", "huggingface/together/deepseek-ai/DeepSeek-R1"),
+        "completion_kwargs": {},
+    }
+
+
+CONFIG = resolve_provider_config()
+
 
 class LiteLLMChatModel(BaseChatModel):
-    model_name: str = Field(default="huggingface/together/deepseek-ai/DeepSeek-R1")
+    model_name: str = Field(default=CONFIG["model"])
 
     def _llm_type(self) -> str:
         return "custom_litellm"
@@ -41,23 +74,20 @@ class LiteLLMChatModel(BaseChatModel):
         try:
             response = litellm.completion(
                 model=self.model_name,
-                messages=litellm_messages
+                messages=litellm_messages,
+                **CONFIG["completion_kwargs"],
             )
-            
-            # Debug the response structure
-            print(f"LiteLLM response type: {type(response)}")
-            
+
             # Extract content from the LiteLLM response
-            # LiteLLM returns a response object with 'choices' field containing messages
             content = ""
-            if hasattr(response, 'choices') and response.choices:
+            if hasattr(response, "choices") and response.choices:
                 content = response.choices[0].message.content
-            
+
             # Create an AI message with the content
             ai_message = AIMessage(content=content)
             generation = ChatGeneration(message=ai_message)
-            return ChatResult(generations=[generation])  # Single list of generations
-            
+            return ChatResult(generations=[generation])
+
         except litellm.exceptions.AuthenticationError as e:
             print(f"Authentication error: {e}")
             exit()
@@ -68,11 +98,9 @@ class LiteLLMChatModel(BaseChatModel):
 
 
 # Now you can use LangChain's chat flow to interact with LiteLLM
-from langchain_core.messages import HumanMessage, SystemMessage
-
 chat = LiteLLMChatModel()
 
-print("🤖 Hello! I am your AI agent. Type 'exit' to quit.")
+print(f"🤖 Hello! Provider: {CONFIG['provider']}. Type 'exit' to quit.")
 while True:
     user_input = input("You: ")
     if user_input.lower() == "exit":
@@ -81,12 +109,12 @@ while True:
 
     # Prepare chat messages (including system message once)
     messages = [
-        SystemMessage(content="You are a helpful AI assistant."),  # System message
-        HumanMessage(content=user_input)  # User message
+        SystemMessage(content="You are a helpful AI assistant."),
+        HumanMessage(content=user_input),
     ]
 
     # Get response from LiteLLM using LangChain flow
     result = chat.invoke(messages)
 
     # Print the AI's response
-    print(f"🤖 {result.content}")  # LangChain's invoke() returns AIMessage
+    print(f"🤖 {result.content}")
